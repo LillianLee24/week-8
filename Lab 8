@@ -1,0 +1,36 @@
+import cv2
+import numpy as np
+protoFile = "pose_deploy_linevec.prototxt"
+weightsFile = "pose_iter_440000.caffemodel"
+
+net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
+
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    h, w = frame.shape[:2]
+    inpBlob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (368, 368), (0, 0, 0), swapRB=False, crop=False)
+    net.setInput(inpBlob)
+    output = net.forward()
+
+    for i in range(15): 
+        probMap = output[0, i, :, :]
+        minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
+
+        x = int((w * point[0]) / output.shape[3])
+        y = int((h * point[1]) / output.shape[2])
+
+        if prob > 0.1: 
+            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+
+    cv2.imshow("Pose Detection", frame)
+
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
